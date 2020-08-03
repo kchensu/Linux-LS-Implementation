@@ -41,9 +41,9 @@ char *getGroupName(gid_t grpNum)
   }
 }
 
-void printInode(struct stat fileStats)
+void print_ino(struct stat s_stats)
 {
-  printf("%20lu ", fileStats.st_ino);
+  printf("%ld", s_stats.st_ino);
 }
 
 int main(int argc, char *argv[])
@@ -119,17 +119,17 @@ int main(int argc, char *argv[])
                 {
                     if (option_or_path[1] == 'i' && option_or_path[2] != 'l')
                     {
-                        printInode(s_stats);
+                        print_ino(s_stats);
                     }
                     else if (option_or_path[1] == 'l' && option_or_path[2] != 'i')
                     {
-                        printInode(s_stats);
+                        print_ino(s_stats);
                     }
                     else if ((option_or_path[1] == 'i' && option_or_path[2] == 'l' )|| (option_or_path[1] == 'l' && option_or_path[2] == 'i'))
                     {
-                        printInode(s_stats);
+                        print_ino(s_stats);
                     }
-                    printf("%s\n", file_name);
+                    printf("%15s\n", file_name);
                 }
             }
 
