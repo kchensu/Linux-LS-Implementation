@@ -12,12 +12,15 @@
 #include <grp.h>
 #include <dirent.h>
 
+# define DATE_BUFFER 512
+
 typedef struct Options {
     int option_i;
     int option_l;
     int option_R;
     int option_not_hidden;
 } Option;
+
 
 int valid_file(char*); 
 int valid_directory(char*); 
@@ -100,11 +103,11 @@ void get_file_size(struct stat s_stat) {
 }
 
 void get_date_time(struct stat s_stat) {
+    struct tm *time;
     char *buffer = (char*)malloc(255);
-    struct tm *time_info;
-    time_t time_stamp = s_stat.st_ctime;
-    time_info = localtime(&time_stamp);
-    strftime(buffer,225,"%b %d %Y %H:%M",time_info);
+    time_t time_s = s_stat.st_ctime;
+    time = localtime(&time_s);
+    strftime(buffer, DATE_BUFFER ,"%b %d %Y %H:%M",time);
     printf("%s   ",buffer);
     free(buffer);
 }
@@ -112,8 +115,6 @@ void get_date_time(struct stat s_stat) {
 void get_filename(char* name, struct stat s_stat) {
     printf("%s",name);
 }
-
-
 // //https://www.gnu.org/software/libc/manual/html_node/Testing-File-Type.html
 int single_file(char *path) {
     struct stat s_stat;
@@ -173,6 +174,7 @@ void print_directory(char *path, Option *option) {
         printf("error opening directory");
         exit(1);
     }
+    // https://stackoverflow.com/questions/4989431/how-to-use-s-isreg-and-s-isdir-posix-macros
     while((dp = readdir(cwd)) != NULL) {     
         if (dp->d_name[0] == '.') { 
             continue;     
@@ -263,7 +265,7 @@ int main (int argc, char *argv[]) {
         }
         print_directory(cwd, option);
     }
-    
+
     // [ARGUEMENTS]
     for (int j = 1; j < argc; j++) 
     {   
@@ -278,10 +280,10 @@ int main (int argc, char *argv[]) {
         {
             print_file(path, option);
         }
-        if(directory(path))
-        {
-            print_directory(path, option);
-        }
+        // if(directory(path))
+        // {
+        //     print_directory(path, option);
+        // }
             
     }
     
