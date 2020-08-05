@@ -113,7 +113,7 @@ void get_date_time(struct stat s_stat) {
 }
 
 void get_filename(char* name, struct stat s_stat) {
-    printf("%s",name);
+    printf("%s\n",name);
 }
 // //https://www.gnu.org/software/libc/manual/html_node/Testing-File-Type.html
 int single_file(char *path) {
@@ -167,7 +167,6 @@ void print_directory(char *path, Option *option) {
     struct dirent *dp;
     char *buffer = (char*)malloc(255);
     struct stat cur_stat;
-    
 
     /* Do nothing if failed to open directory as error message has already been printed */
     if ((cwd = opendir(path)) == NULL) {
@@ -200,8 +199,8 @@ void print_directory(char *path, Option *option) {
             get_date_time(cur_stat);
         }
         get_filename(dp->d_name, cur_stat);
-        printf("\n");
     }
+    printf("\n");
     free(dp);
     free(buffer);
     closedir(cwd);
@@ -226,9 +225,100 @@ void print_file(char* file_path, Option* option) {
     printf("\n");
 }
 
+void recursicvePrint(char *basePath, Option *option) {
+    struct dirent *dp;
+    DIR *dir;
+    struct stat buf;
+    char *file_name;
+    char *path = (char*)malloc(1000);
+
+
+    if(basePath != NULL) {
+        if((dir = opendir(basePath)) == NULL) {
+            perror ("Cannot open.");
+            return;
+        }
+    } else {
+        if((dir = opendir(".")) == NULL) {
+            perror ("Cannot open.");
+            return;
+        }
+        printf(".:\n");
+
+    }
+ 
+    while ((dp = readdir(dir)) != NULL) {
+        if (dp->d_name[0] !='.') {
+            file_name = dp->d_name;
+            if(basePath != NULL) {
+                strcpy(path, basePath);
+                strcat(path, "/");
+                strcat(path, dp->d_name);  
+                if((stat(path, &buf)) != 0) {
+                    printf("%s: stat error: %d\n", dp->d_name, errno);
+                }     
+            } else if((stat(path, &buf)) != 0) {
+                printf("%s: stat error: %d\n", dp->d_name, errno);
+            }
+
+            if (option->option_i) {
+                get_ino(buf);
+            }
+            if (option->option_l) {
+                get_permissions(buf);
+                get_hardlink(buf);
+                get_user_info(buf);
+                get_group_info(buf);
+                get_file_size(buf);
+                get_date_time(buf);
+                printf("%s\n", file_name);
+            } else {
+                printf("%s ", file_name);
+            }     
+        }
+    }
+
+    rewinddir(dir);
+    while ((dp = readdir(dir)) != NULL)
+    { 
+        memset(path, 0, sizeof(path));
+        if (dp->d_name[0] == '.') { 
+            continue;     
+        }       
+      
+        strcpy(path, dp->d_name);
+        
+        if(basePath != NULL) {
+            strcpy(path, basePath);
+            strcat(path, "/");
+            strcat(path, dp->d_name);  
+
+            if((stat(path, &buf)) != 0) {
+                printf("%s: stat error: %d\n", dp->d_name, errno);
+            }     
+        } else if((stat(path, &buf)) != 0) {
+            printf("%s: stat error: %d\n", dp->d_name, errno);
+        }
+
+        if(S_ISDIR(buf.st_mode)) {
+            printf("\n\n./%s\n", path);
+            //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
+            if(basePath != NULL) {
+                strcpy(path, basePath);
+                strcat(path, "/");
+                strcat(path, dp->d_name);  
+            }
+            recursicvePrint(path, option);
+        }
+    }
+
+    free(path);
+    closedir(dir);
+}
+
 int main (int argc, char *argv[]) {
     int count = 0;
-    char *path = (char*)malloc(255);
+    char *path = (char*)malloc(1000);
     char cwd[255]; 
     Option *option = malloc(sizeof(Option));
 
@@ -263,7 +353,11 @@ int main (int argc, char *argv[]) {
             printf("error %d\n", errno); 
             exit(1);
         }
+        if(option->option_R) {
+            recursicvePrint(cwd, option);
+        } else {
         print_directory(cwd, option);
+        }    
     }
 
     // [ARGUEMENTS]
@@ -305,5 +399,6 @@ int main (int argc, char *argv[]) {
     //         print_directory(path, option);
     //     }
     // }
+
     return 0;
 }
