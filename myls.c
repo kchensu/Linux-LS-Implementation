@@ -12,7 +12,9 @@
 #include <grp.h>
 #include <dirent.h>
 
+
 # define DATE_BUFFER 512
+#define _SVID_SOURCE
 
 typedef struct Options {
     int option_i;
@@ -35,15 +37,19 @@ void get_user_info(struct stat);
 void get_group_info(struct stat); 
 void get_file_size(struct stat); 
 void get_date_time(struct stat); 
-void get_filename(char*, struct stat); 
+void get_filename(char*, Option *); 
 void print_file(char*,Option*); 
-void print_directory(char*, Option*); 
+void print_directory(char*, Option*);
 
+extern char *optarg;
+extern int optind, opterr, optopt;
 
 void get_options(const int argc, char **argv, Option* opt) {
     int choice;
-    while((choice = getopt(argc, argv, "ilR")) != -1) {  
-        switch(choice) {  
+    struct stat s_stat;
+    while((choice = getopt(argc, argv, "+ilR")) != -1)
+    {   
+        switch(choice) {
             case 'i':  
                 opt->option_i = 1;
                 break;
@@ -54,10 +60,11 @@ void get_options(const int argc, char **argv, Option* opt) {
                 opt->option_R = 1;
                 break;
             default:
-            // invalid option, exit program
-                exit(1);     
+                exit(1);  
+            
         }
     }
+
 }
 
 int added_options(char* argv) {
@@ -72,6 +79,10 @@ void get_ino(struct stat s_stat) {
 // https://jameshfisher.com/2017/02/24/what-is-mode_t/
 void get_permissions(struct stat path_stats) {
     mode_t mode = path_stats.st_mode;
+    // get file type
+    printf((S_ISDIR(path_stats.st_mode)) ? "d" : "");
+    printf((S_ISREG(path_stats.st_mode)) ? "-" : "");
+    printf((S_ISLNK(path_stats.st_mode)) ? "l" : "");
     // user permissions
     printf((mode & S_IRUSR) ? "r" : "-");
     printf((mode & S_IWUSR) ? "w" : "-");
@@ -112,43 +123,49 @@ void get_date_time(struct stat s_stat) {
     free(buffer);
 }
 
-void get_filename(char* name, struct stat s_stat) {
-    printf("%s",name);
+void get_filename(char* name, Option *option) {
+    // char *buffer = (char*)malloc(1024);
+    // struct stat s_stat;
+    // readlink(name, buffer, 1024);
+    // lstat(buffer, &s_stat);
+
+
+    // if (S_ISLNK(s_stat.st_mode) && option->option_l)
+    // {
+    //     printf(" -> ");
+    //     printf("%s\n", name);
+    // }
+    // printf("\n");
+    printf("%s\n",name);
 }
 // //https://www.gnu.org/software/libc/manual/html_node/Testing-File-Type.html
 int single_file(char *path) {
     struct stat s_stat;
     lstat(path, &s_stat); 
     // This macro returns non-zero if the file is a regular file.
-    if (S_ISREG(s_stat.st_mode))
+    if (S_ISREG(s_stat.st_mode)) {
         return 1;
-    else
-    {
-        printf("error\n");
-        exit(1);
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 int valid_directory(char *path) {
     DIR *dir; 
-    if ((dir = opendir(path)) == NULL) 
+    if ((dir = opendir(path)) == NULL) {
+        //printf(" directory error\n");
         return 0;
-    else
-    {
-        printf("error\n");
-        exit(1);
+    } else {
+        closedir;
+        return 1;
     }
-    
-    closedir(dir);
-    return 1;
-    
 }
 
 int valid_file(char* path) {
     int file;
-    if((file = open(path, O_RDONLY)) <= -1) 
+    if((file = open(path, O_RDONLY)) <= -1) {
         return 0;
+    }
     return 1;
 }
 
@@ -157,8 +174,9 @@ int directory(char *path)
     struct stat s_stat;
     lstat(path, &s_stat); 
     //This macro returns non-zero if the file is a directory.
-    if (S_ISDIR(s_stat.st_mode)) 
+    if (S_ISDIR(s_stat.st_mode)) {
         return 1;
+    }
     return 0;
 }
 
@@ -167,13 +185,29 @@ void print_directory(char *path, Option *option) {
     struct dirent *dp;
     char *buffer = (char*)malloc(255);
     struct stat cur_stat;
-    
 
     /* Do nothing if failed to open directory as error message has already been printed */
     if ((cwd = opendir(path)) == NULL) {
         printf("error opening directory");
         exit(1);
     }
+//      struct dirent **namelist;
+//    int n;
+//    int i=0;
+//    n = scandir(".", &namelist,NULL,alphasort);
+//    if (n < 0)
+//       perror("scandir");
+//    else {
+//       while (i<n) {
+//          printf("%s\n", namelist[i]->d_name);
+//          free(namelist[i]);
+//          ++i;
+//       }
+//       free(namelist);
+//    }
+
+
+
     // https://stackoverflow.com/questions/4989431/how-to-use-s-isreg-and-s-isdir-posix-macros
     while((dp = readdir(cwd)) != NULL) {     
         if (dp->d_name[0] == '.') { 
@@ -181,8 +215,10 @@ void print_directory(char *path, Option *option) {
         }
         //https://stackoverflow.com/questions/19663042/stat-function-call
         // stat() returns information about a file pointed to by pathname
-        strcpy(buffer, dp->d_name);
-        int result = stat(buffer, &cur_stat);
+        strcpy(buffer, path);
+        strcat(buffer, "/");
+        strcat(buffer, dp->d_name);  
+        int result = lstat(buffer, &cur_stat);
         if (result == -1)
         {
             printf("error %d\n", errno);
@@ -199,9 +235,9 @@ void print_directory(char *path, Option *option) {
             get_file_size(cur_stat);
             get_date_time(cur_stat);
         }
-        get_filename(dp->d_name, cur_stat);
-        printf("\n");
+        get_filename(dp->d_name, option);
     }
+    printf("\n");
     free(dp);
     free(buffer);
     closedir(cwd);
@@ -215,38 +251,127 @@ void print_file(char* file_path, Option* option) {
         get_ino(s_stat);
      
     }
-    if (option->option_l) {
+    if (option->option_l) 
+    {
         get_permissions(s_stat);
         get_user_info(s_stat);
         get_group_info(s_stat);
         get_file_size(s_stat);
         get_date_time(s_stat);
     }
-    get_filename(file_path, s_stat);
+    get_filename(file_path, option);
     printf("\n");
 }
 
+
+void recursicvePrint(char *basePath, Option *option) {
+    struct dirent *dp;
+    DIR *dir;
+    struct stat buf;
+    char *path = (char*)malloc(1000);
+
+    if((dir = opendir(basePath)) == NULL) {
+        perror ("Cannot open.");
+        return;
+    }
+    
+    if((strcmp(basePath, ".")) == 0) {
+        printf(".:\n");
+    } else {
+        printf("%s:\n", basePath);
+    }
+    
+    while ((dp = readdir(dir)) != NULL) {
+        if (dp->d_name[0] !='.') {
+            if(basePath != NULL) {
+                strcpy(path, basePath);
+                strcat(path, "/");
+                strcat(path, dp->d_name);  
+                if((lstat(path, &buf)) != 0) {
+                    printf("%s: stat error: %d\n", dp->d_name, errno);
+                }     
+            } else if((lstat(path, &buf)) != 0) {
+                printf("%s: stat error: %d\n", dp->d_name, errno);
+            }
+
+            if (option->option_i) {
+                get_ino(buf);
+            }
+            if (option->option_l) {
+                get_permissions(buf);
+                get_hardlink(buf);
+                get_user_info(buf);
+                get_group_info(buf);
+                get_file_size(buf);
+                get_date_time(buf);
+                printf("%s\n", dp->d_name);
+            } else {
+                printf("%s ", dp->d_name);
+            }     
+        }
+    }
+
+    rewinddir(dir);
+    while ((dp = readdir(dir)) != NULL)
+    { 
+        memset(path, 0, sizeof(path));
+        if (dp->d_name[0] == '.') { 
+            continue;     
+        }       
+      
+        strcpy(path, dp->d_name);
+        
+        if(basePath != NULL) {
+            strcpy(path, basePath);
+            strcat(path, "/");
+            strcat(path, dp->d_name);  
+
+            if((lstat(path, &buf)) != 0) {
+                printf("%s: stat error: %d\n", dp->d_name, errno);
+            }     
+        } else if((lstat(path, &buf)) != 0) {
+            printf("%s: stat error: %d\n", dp->d_name, errno);
+        }
+
+        if(S_ISDIR(buf.st_mode)) {
+            //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
+            if(basePath != NULL) {
+                printf("\n\n");
+                strcpy(path, basePath);
+                strcat(path, "/");
+                strcat(path, dp->d_name);  
+            }
+            recursicvePrint(path, option);
+        }
+    }
+    free(path);
+    closedir(dir);
+}
+
+
+
 int main (int argc, char *argv[]) {
     int count = 0;
-    char *path = (char*)malloc(255);
+    char *path = (char*)malloc(1000);
     char cwd[255]; 
     Option *option = malloc(sizeof(Option));
-
     get_options(argc, argv, option); 
 
     // loop through all args and skips the options[ -i, -l, -il etc...]
     for (int i = 1; i < argc; i++)
     { 
+
+
         if (added_options(argv[i])) 
             continue; 
 
         if (!valid_directory(argv[i]) && !valid_file(argv[i])) {
             printf("ls: cannot access %s", argv[i]);
             printf("No such file or directory\n");
-            exit(1);
-            
+            //exit(1);
         }
-        /* Count file or directory argument that exists*/
+
+        // The number of args that are either a dir or a file
         else if (directory(argv[i]) || single_file(argv[i])) {
             if (valid_directory(argv[i]) || valid_file(argv[i])) 
             {
@@ -254,16 +379,20 @@ int main (int argc, char *argv[]) {
             }
         }
     }
-
+    // printf("count %d\n",count);
     // https://pubs.opengroup.org/onlinepubs/009695399/functions/getcwd.html
     // no options given
     if (count == 0) {
         // getcwd - get the pathname of the current working directory
         if (getcwd(cwd, sizeof(cwd)) == NULL) {
-            printf("error %d\n", errno); 
+            printf(" get cwd error %d\n", errno); 
             exit(1);
         }
-        print_directory(cwd, option);
+        if(option->option_R) {
+            recursicvePrint(".", option);
+        } else {
+            print_directory(cwd, option);
+        }    
     }
 
     // [ARGUEMENTS]
@@ -278,12 +407,16 @@ int main (int argc, char *argv[]) {
         path = argv[j];
         if (single_file(path))
         {
+            // printf("HELLLLOOOO PRINT THIS\n");
             print_file(path, option);
+        } else if(directory(path)) {
+            if(option->option_R) {
+                recursicvePrint(path, option);
+            } else  {
+                printf("%s:\n", path);
+                print_directory(path, option);
+            }
         }
-        // if(directory(path))
-        // {
-        //     print_directory(path, option);
-        // }
             
     }
     
@@ -305,5 +438,8 @@ int main (int argc, char *argv[]) {
     //         print_directory(path, option);
     //     }
     // }
+    // free(path);
+    free(option);
+
     return 0;
 }
