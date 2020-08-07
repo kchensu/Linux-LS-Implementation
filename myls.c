@@ -263,7 +263,6 @@ void print_file(char* file_path, Option* option) {
     printf("\n");
 }
 
-
 void recursicvePrint(char *basePath, Option *option) {
     struct dirent *dp;
     DIR *dir;
