@@ -158,13 +158,13 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
 
     // check if is afile
     if (S_ISREG(s_stat.st_mode)) {
-        printf("%.*s\n", max_width, name);
+        printf("%.*s ", max_width, name);
         return;
     }
 
     // check if is a directory
     if (S_ISDIR(s_stat.st_mode)) {
-        printf("%.*s\n", max_width, name);
+        printf("%.*s ", max_width, name);
         return;
     }
 
@@ -244,6 +244,42 @@ int directory(char *path)
     return 0;
 }
 
+int myCompare(const struct dirent ** dir1, const struct dirent **dir2) {
+    // char* str1 = (*(const struct dirent **)dir1)->d_name;
+    // char* str2 = (*(const struct dirent **)dir2)->d_name;
+    int sum1;
+    int sum2;
+    int minStrLength;
+    sum2 = 0;
+    sum1 = 0;
+    char buf1[1000];
+    char buf2[1000];
+    int nbr1 = 0;
+    int nbr2 = 0;
+
+    strcpy(buf1,(*(const struct dirent **)dir1)->d_name);
+    strcpy(buf2,(*(const struct dirent **)dir2)->d_name);
+    int strLength1 = strlen(buf1);
+    int strLength2 = strlen(buf2);
+
+    //find the bounds for the loop
+    if(strLength1 <= strLength2) {
+        minStrLength = strLength1;
+    } else {
+        minStrLength = strLength2;
+    }
+    
+    // loop through and compare characters
+    for(int i = 0; i < minStrLength; i++) {
+        if(buf1[i] < buf2[i]) {
+            return -1;
+        } else if (buf1[i] > buf2[i]) {
+            return 1;
+        }
+    }
+    return strcmp(buf1, buf2);
+}
+
 void print_directory(char *path, Option *option) {
     DIR *cwd;
     struct dirent *dp;
@@ -255,25 +291,17 @@ void print_directory(char *path, Option *option) {
         printf("error opening directory");
         exit(1);
     }
-//      struct dirent **namelist;
-//    int n;
-//    int i=0;
-//    n = scandir(".", &namelist,NULL,alphasort);
-//    if (n < 0)
-//       perror("scandir");
-//    else {
-//       while (i<n) {
-//          printf("%s\n", namelist[i]->d_name);
-//          free(namelist[i]);
-//          ++i;
-//       }
-//       free(namelist);
-//    }
 
-
-
+    struct dirent **namelist;
+    int n;
+    n = scandir(path, &namelist, NULL, myCompare);
+    if (n == -1) {
+        perror("scandir");
+        exit(EXIT_FAILURE);
+    }
     // https://stackoverflow.com/questions/4989431/how-to-use-s-isreg-and-s-isdir-posix-macros
-    while((dp = readdir(cwd)) != NULL) {     
+    for(int i =0; i < n; i++) {  
+        dp = namelist[i];   
         if (dp->d_name[0] == '.') { 
             continue;     
         }
@@ -282,7 +310,7 @@ void print_directory(char *path, Option *option) {
         strcpy(buffer, path);
         strcat(buffer, "/");
         strcat(buffer, dp->d_name);  
-        int result = lstat(buffer, &cur_stat);
+        int result = stat(buffer, &cur_stat);
         if (result == -1)
         {
             printf("error %d\n", errno);
@@ -306,6 +334,7 @@ void print_directory(char *path, Option *option) {
     free(buffer);
     closedir(cwd);
 }
+
 
 void print_file(char* file_path, Option* option) { 
     struct stat s_stat;
@@ -344,39 +373,21 @@ void recursicvePrint(char *basePath, Option *option) {
         printf("%s:\n", basePath);
     }
     
-    while ((dp = readdir(dir)) != NULL) {
-        if (dp->d_name[0] !='.') {
-            if(basePath != NULL) {
-                strcpy(path, basePath);
-                strcat(path, "/");
-                strcat(path, dp->d_name);  
-                if((lstat(path, &buf)) != 0) {
-                    printf("%s: stat error: %d\n", dp->d_name, errno);
-                }     
-            } else if((lstat(path, &buf)) != 0) {
-                printf("%s: stat error: %d\n", dp->d_name, errno);
-            }
-
-            if (option->option_i) {
-                get_ino(buf);
-            }
-            if (option->option_l) {
-                get_permissions(buf);
-                get_hardlink(buf);
-                get_user_info(buf);
-                get_group_info(buf);
-                get_file_size(buf);
-                get_date_time(buf);
-                printf("%s\n", dp->d_name);
-            } else {
-                printf("%s ", dp->d_name);
-            }     
-        }
-    }
+    print_directory(basePath, option);
 
     rewinddir(dir);
-    while ((dp = readdir(dir)) != NULL)
-    { 
+    struct dirent **namelist;
+    int n = scandir(basePath, &namelist, NULL, myCompare);
+    if (n == -1) {
+        perror("scandir");
+        exit(EXIT_FAILURE);
+    }
+    // https://stackoverflow.com/questions/4989431/how-to-use-s-isreg-and-s-isdir-posix-macros
+    for(int i =0; i < n; i++) {  
+        dp = namelist[i];   
+        if (dp->d_name[0] == '.') { 
+            continue;     
+        }
         memset(path, 0, sizeof(path));
         if (dp->d_name[0] == '.') { 
             continue;     
