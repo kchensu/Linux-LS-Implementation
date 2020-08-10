@@ -507,7 +507,7 @@ void recursicvePrint(char *basePath, Option *option) {
     free(dp);
 }
 
-int myStringCmp (char* str1, char* str2) {
+int myStringCmp (const void* str1, const void* str2) {
     char buf1[PATH_MAX];
     char buf2[PATH_MAX];
     strcpy(buf1, str1);
@@ -536,14 +536,15 @@ int myStringCmp (char* str1, char* str2) {
 
 
 int main (int argc, char *argv[]) {
+
     int count = 0;
     char *path = (char*)malloc(PATH_MAX);
     char cwd[PATH_MAX];
     Option *option = malloc(sizeof(Option));
     get_options(argc, argv, option); 
-   
 
-    char* temp = (char*) malloc(PATH_MAX);
+    //https://stackoverflow.com/questions/29158659/string-sort-in-c-using-array-of-pointers
+    char* temp;
     int dif;
     for (int i = argc - non_opts; i< argc; i++) {
         for(int j = i + 1; j< argc; j++) {
@@ -556,10 +557,8 @@ int main (int argc, char *argv[]) {
             }
         }
     }
+   
     //free(temp);
-    // for(int i =0; i < argc; i++) {
-    //     printf("%s ", argv[i]);
-    // }
     // printf("Count the number of options: %d\n", count_opts);
     // printf("THE NUMBER OF NON ARGUMENTS %d\n", non_opts);
 
@@ -656,9 +655,9 @@ int main (int argc, char *argv[]) {
     //         print_directory(path, option);
     //     }
     // }
+    //free(temp);
     free(path);
     free(option);
-    printf("\n");
-
+    //printf("\n");
     return 0;
 }
