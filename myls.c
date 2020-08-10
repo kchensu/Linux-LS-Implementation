@@ -38,7 +38,7 @@ void get_file_size(struct stat);
 void get_date_time(struct stat); 
 void get_filename(char*, struct stat, Option *); 
 void print_file(char*,Option*); 
-void print_directory(char*, Option*);
+int print_directory(char*, Option*);
 
 extern int optind, opterr, optopt;
 static int count_opts = 0;
@@ -161,25 +161,44 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     char *buffer = (char*)malloc(PATH_MAX);
     struct stat temp_stat;
     int max_width = 512; 
-    
-
     //check if is afile
-    if (S_ISREG(s_stat.st_mode)) {
-        printf("%.*s\n", max_width, name);
+
+    if (S_ISREG(s_stat.st_mode)) 
+    {
+        if (opt->option_R)
+        {
+            printf("%.*s ", max_width, name);
+            
+        }
+        else
+        {
+            printf("%.*s\n", max_width, name);
+        }
         return;
+        
+        
+        
     }
 
     // check if is a directory
     if (S_ISDIR(s_stat.st_mode)) 
     {
-        printf("%.*s\n", max_width, name);
+        if (opt->option_R)
+        {
+            printf("%.*s ", max_width, name);
+            
+        }
+        else
+        {
+            printf("%.*s\n", max_width, name);
+        }
         return;
     }
     // check if is a link
     if (S_ISLNK(s_stat.st_mode))
     {
         
-        printf("%.*s", max_width, name);
+        printf("%.*s ", max_width, name);
     }
     
     // buffer contains the link of a filename
@@ -218,7 +237,10 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
             printf("%.*s", max_width,buffer);
         }
     }
-    printf("\n");
+    if (opt->option_l)
+    {
+        printf("\n");
+    }
     free(buffer);
 }
 
@@ -303,44 +325,19 @@ int myCompare(const struct dirent ** dir1, const struct dirent **dir2) {
     return strcmp(buf1, buf2);
 }
 
-void print_directory(char *path, Option *option) {
+int print_directory(char *path, Option *option) {
     DIR *cwd;
     struct dirent *dp;
     char *buffer = (char*)malloc(255);
     struct stat cur_stat;
+    int hasValidFiles = 0;
 
-    /* Do nothing if failed to open directory as error message has already been printed */
+    // failed to open
     if ((cwd = opendir(path)) == NULL) {
-        printf("error opening directory");
+        printf("error opening directory: %d\n", errno);
         exit(1);
     }
-    // while((dp = readdir(cwd)) != NULL) {     
-    //     // if (S_ISDIR(cur_stat.st_mode)) {
-    //     //     // printf("Debug: here\n");
-    //     //     printf("Debug: %s is a directory\n", dp->d_name);
-    //     // }   
-    //     if (dp->d_name[0] == '.') { // if hidden
 
-    //             continue; // skip hidden item if not set 
-    //     }
-    //     strcpy(buffer, dp->d_name);
-    //     if (lstat(buffer, &cur_stat) == -1) { // this happens when files of sub directories are arguments
-    //         // handle the case by appending file to cwd 
-    //         strcpy(buffer, path);
-    //         strcat(buffer, "/");
-    //         strcat(buffer, dp->d_name);
-    //         lstat(buffer, &cur_stat);
-    //     }
-    //     if (option->option_i) {
-    //         get_ino(cur_stat);
-    //     }
-    //     if (option->option_l) {
-
-    //         get_permissions(cur_stat);
-            
-    //     }
-    //     get_filename(dp->d_name, cur_stat, option);
-    // }
 
     struct dirent **namelist;
     int n;
@@ -355,40 +352,43 @@ void print_directory(char *path, Option *option) {
     {  
         // get_permissions(cur_stat);
         dp = namelist[i];   
-        if (dp->d_name[0] == '.') { 
-            continue;     
-        }
+        if (dp->d_name[0] != '.') { 
         
-        //https://stackoverflow.com/questions/19663042/stat-function-call
-        // lstat() returns information about a file pointed to by pathname
-        strcpy(buffer, path);
-        strcat(buffer, "/");
-        strcat(buffer, dp->d_name);  
-        int result = lstat(buffer, &cur_stat);
-        if (result == -1)
-        {
-            printf("error %d\n", errno);
-            exit(1);
+
+            hasValidFiles = 1;
+            //https://stackoverflow.com/questions/19663042/stat-function-call
+            // lstat() returns information about a file pointed to by pathname
+            strcpy(buffer, path);
+            strcat(buffer, "/");
+            strcat(buffer, dp->d_name);  
+            int result = lstat(buffer, &cur_stat);
+            if (result == -1)
+            {
+                printf("error %d\n", errno);
+                exit(1);
+            }
+            if (option->option_i) {
+                
+                get_ino(cur_stat);
+            }
+            if (option->option_l) {
+                get_permissions(cur_stat);
+                get_hardlink(cur_stat);
+                get_user_info(cur_stat);
+                get_group_info(cur_stat);
+                get_file_size(cur_stat);
+                get_date_time(cur_stat);
+            }
+            get_filename(dp->d_name, cur_stat, option);
         }
-        if (option->option_i) {
-            
-            get_ino(cur_stat);
-        }
-        if (option->option_l) {
-            get_permissions(cur_stat);
-            get_hardlink(cur_stat);
-            get_user_info(cur_stat);
-            get_group_info(cur_stat);
-            get_file_size(cur_stat);
-            get_date_time(cur_stat);
-        }
-        get_filename(dp->d_name, cur_stat, option);
     }
-    printf("\n");
+
+    // printf("\n");
     free(dp);
     free(buffer);
     free(namelist);
     closedir(cwd);
+    return hasValidFiles;
 }
 
 
@@ -419,6 +419,7 @@ void recursicvePrint(char *basePath, Option *option) {
     DIR *dir;
     struct stat buf;
     char *path = (char*)malloc(PATH_MAX);
+    int printedFiles;
 
     if((dir = opendir(basePath)) == NULL) {
         perror ("Cannot open.");
@@ -431,7 +432,8 @@ void recursicvePrint(char *basePath, Option *option) {
         printf("%s:\n", basePath);
     }
     
-    print_directory(basePath, option);
+    printedFiles = print_directory(basePath, option);
+    printf("had valiude files?: %d", printedFiles);
 
     rewinddir(dir);
     struct dirent **namelist;
@@ -468,7 +470,9 @@ void recursicvePrint(char *basePath, Option *option) {
         if(S_ISDIR(buf.st_mode)) {
             //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
             if(basePath != NULL) {
-                printf("\n\n");
+                if(printedFiles) {
+                    printf("\n\n");
+                }
                 strcpy(path, basePath);
                 strcat(path, "/");
                 strcat(path, dp->d_name);  
@@ -635,7 +639,7 @@ int main (int argc, char *argv[]) {
     // }
     // free(path);
     free(option);
-    // free(path);
+    printf("\n");
 
     return 0;
 }
