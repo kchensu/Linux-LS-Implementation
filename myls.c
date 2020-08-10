@@ -158,7 +158,6 @@ int valid_link(char* path)
 }
 
 void get_filename(char* name,struct stat s_stat, Option *opt) {
-    char *buffer = (char*)malloc(PATH_MAX);
     struct stat temp_stat;
     int max_width = 512; 
     //check if is afile
@@ -197,12 +196,11 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     // check if is a link
     if (S_ISLNK(s_stat.st_mode))
     {
-        
         printf("%.*s ", max_width, name);
     }
     
     // buffer contains the link of a filename
-    
+    char *buffer = (char*)malloc(PATH_MAX);
     readlink(name, buffer, PATH_MAX);
     lstat(buffer, &temp_stat);
 
@@ -214,34 +212,40 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
         // printf("name : %s\n", name);
         // check if is a file
         
-        if (S_ISREG(temp_stat.st_mode))
-        {
-            
-            if (temp_stat.st_mode & S_IXOTH) 
-            {
-                printf("%.*s", max_width, buffer); 
+        // if (S_ISREG(temp_stat.st_mode))
+        // {
+        //     //printf(" is reg");
+        //     if (temp_stat.st_mode & S_IXOTH) 
+        //     {
+        //         printf("%.*s", max_width, buffer); 
                
-            }
+        //     }
             
-            printf("%.*s", max_width, buffer);
-        }
-        if (S_ISLNK(temp_stat.st_mode))
-        {
-            printf("%.*s", max_width, buffer);
+        //     //printf("%.*s", max_width, buffer);
+        // }
+        // if (S_ISLNK(temp_stat.st_mode))
+        // {
+        //     //printf(" is link");
+        //     printf("%.*s", max_width, buffer);
           
-        }
+        // }
 
-        //check if is a directory
-        if (S_ISDIR(temp_stat.st_mode)) 
-        {
-            printf("%.*s", max_width,buffer);
-        }
+        // //check if is a directory
+        // if (S_ISDIR(temp_stat.st_mode)) 
+        // {
+        //     //printf(" is Dir");
+        //     printf("%.*s", max_width,buffer);
+        // }
+
+        printf("%.*s", max_width,buffer);
+
     }
     if (opt->option_l)
     {
         printf("\n");
     }
     free(buffer);
+    return;
 }
 
 
@@ -351,7 +355,7 @@ int print_directory(char *path, Option *option) {
     for(int i =0; i < n; i++) 
     {  
         // get_permissions(cur_stat);
-        dp = namelist[i];   
+        dp = namelist[i]; 
         if (dp->d_name[0] != '.') { 
         
 
@@ -365,10 +369,10 @@ int print_directory(char *path, Option *option) {
             if (result == -1)
             {
                 printf("error %d\n", errno);
+                //free(buffer);
                 exit(1);
             }
             if (option->option_i) {
-                
                 get_ino(cur_stat);
             }
             if (option->option_l) {
@@ -382,6 +386,11 @@ int print_directory(char *path, Option *option) {
             get_filename(dp->d_name, cur_stat, option);
         }
     }
+    // https://comp.soft-sys.ace.narkive.com/MD1oHGGe/ace-users-ace-os-scandir-is-producing-memory-leak
+    while(n--) {
+        free(namelist[n]);
+    }
+
     // printf("\n");
     free(dp);
     free(buffer);
@@ -432,7 +441,6 @@ void recursicvePrint(char *basePath, Option *option) {
     }
     
     printedFiles = print_directory(basePath, option);
-    printf("had valiude files?: %d", printedFiles);
 
     rewinddir(dir);
     struct dirent **namelist;
@@ -636,7 +644,7 @@ int main (int argc, char *argv[]) {
     //         print_directory(path, option);
     //     }
     // }
-    // free(path);
+    free(path);
     free(option);
     printf("\n");
 
