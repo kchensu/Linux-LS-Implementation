@@ -487,7 +487,9 @@ void recursicvePrint(char *basePath, Option *option) {
             recursicvePrint(path, option);
         }
     }
-    
+    while(n--) {
+        free(namelist[n]);
+    }
     closedir(dir);
     free(path);
     free(namelist);
