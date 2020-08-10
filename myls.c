@@ -556,7 +556,7 @@ int main (int argc, char *argv[]) {
             }
         }
     }
-    free(temp);
+    //free(temp);
     // for(int i =0; i < argc; i++) {
     //     printf("%s ", argv[i]);
     // }
