@@ -382,7 +382,6 @@ int print_directory(char *path, Option *option) {
             get_filename(dp->d_name, cur_stat, option);
         }
     }
-
     // printf("\n");
     free(dp);
     free(buffer);
