@@ -161,12 +161,23 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     char *buffer = (char*)malloc(PATH_MAX);
     struct stat temp_stat;
     int max_width = 512; 
-    
-
     //check if is afile
-    if (S_ISREG(s_stat.st_mode)) {
-        printf("%.*s\n", max_width, name);
+
+    if (S_ISREG(s_stat.st_mode)) 
+    {
+        if (opt->option_R)
+        {
+            printf("%.*s ", max_width, name);
+            
+        }
+        else
+        {
+            printf("%.*s\n", max_width, name);
+        }
         return;
+        
+        
+        
     }
 
     // check if is a directory
@@ -218,7 +229,10 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
             printf("%.*s", max_width,buffer);
         }
     }
-    printf("\n");
+    if (opt->option_l)
+    {
+        printf("\n");
+    }
     free(buffer);
 }
 
@@ -309,9 +323,9 @@ void print_directory(char *path, Option *option) {
     char *buffer = (char*)malloc(255);
     struct stat cur_stat;
 
-    /* Do nothing if failed to open directory as error message has already been printed */
+    // failed to open
     if ((cwd = opendir(path)) == NULL) {
-        printf("error opening directory");
+        printf("error opening directory: %d\n", errno);
         exit(1);
     }
     // while((dp = readdir(cwd)) != NULL) {     
@@ -384,7 +398,7 @@ void print_directory(char *path, Option *option) {
         }
         get_filename(dp->d_name, cur_stat, option);
     }
-    printf("\n");
+    // printf("\n");
     free(dp);
     free(buffer);
     free(namelist);
@@ -468,7 +482,7 @@ void recursicvePrint(char *basePath, Option *option) {
         if(S_ISDIR(buf.st_mode)) {
             //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
             if(basePath != NULL) {
-                printf("\n\n");
+                printf("\n");
                 strcpy(path, basePath);
                 strcat(path, "/");
                 strcat(path, dp->d_name);  
@@ -635,7 +649,7 @@ int main (int argc, char *argv[]) {
     // }
     // free(path);
     free(option);
-    // free(path);
+    printf("\n");
 
     return 0;
 }
