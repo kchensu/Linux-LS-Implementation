@@ -161,10 +161,10 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     struct stat temp_stat;
     int max_width = 512; 
     //check if is afile
-
+    // printf("file name is %s\n", name);
     if (S_ISREG(s_stat.st_mode)) 
     {
-        if (opt->option_R)
+        if (opt->option_R && !opt->option_l)
         {
             printf("%.*s ", max_width, name);
             
@@ -174,15 +174,13 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
             printf("%.*s\n", max_width, name);
         }
         return;
-        
-        
-        
+     
     }
 
     // check if is a directory
     if (S_ISDIR(s_stat.st_mode)) 
     {
-        if (opt->option_R)
+        if (opt->option_R && !opt->option_l) 
         {
             printf("%.*s ", max_width, name);
             
@@ -201,7 +199,8 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     
     // buffer contains the link of a filename
     char *buffer = (char*)malloc(PATH_MAX);
-    readlink(name, buffer, PATH_MAX);
+    size_t pathlen = readlink(name, buffer, sizeof(buffer) - 1);
+    buffer[pathlen] = 0;
     lstat(buffer, &temp_stat);
 
     //if is a link, then we will need to print out the file/dir its poiting to.
@@ -269,7 +268,6 @@ int valid_directory(char *path) {
         //printf(" directory error\n");
         return 0;
     } else {
-        closedir;
         return 1;
     }
 }
@@ -332,7 +330,7 @@ int myCompare(const struct dirent ** dir1, const struct dirent **dir2) {
 int print_directory(char *path, Option *option) {
     DIR *cwd;
     struct dirent *dp;
-    char *buffer = (char*)malloc(255);
+    char *buffer = (char*)malloc(PATH_MAX);
     struct stat cur_stat;
     int hasValidFiles = 0;
 
@@ -362,6 +360,7 @@ int print_directory(char *path, Option *option) {
             hasValidFiles = 1;
             //https://stackoverflow.com/questions/19663042/stat-function-call
             // lstat() returns information about a file pointed to by pathname
+
             strcpy(buffer, path);
             strcat(buffer, "/");
             strcat(buffer, dp->d_name);  
@@ -387,6 +386,7 @@ int print_directory(char *path, Option *option) {
         }
     }
     // https://comp.soft-sys.ace.narkive.com/MD1oHGGe/ace-users-ace-os-scandir-is-producing-memory-leak
+    n = n-1;
     while(n--) {
         free(namelist[n]);
     }
@@ -460,7 +460,7 @@ void recursicvePrint(char *basePath, Option *option) {
         if (dp->d_name[0] == '.') { 
             continue;     
         }       
-      
+
         strcpy(path, dp->d_name);
         if(basePath != NULL) {
             strcpy(path, basePath);
@@ -477,8 +477,18 @@ void recursicvePrint(char *basePath, Option *option) {
         if(S_ISDIR(buf.st_mode)) {
             //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
             if(basePath != NULL) {
-                if(printedFiles) {
-                    printf("\n\n");
+                if(printedFiles)
+                {
+                    if(option->option_R && !option->option_l)
+                    {
+                        printf("\n\n");
+                    }
+                    else
+                    {
+                        printf("\n");
+                    }
+                    
+                    
                 }
                 strcpy(path, basePath);
                 strcat(path, "/");
@@ -487,6 +497,7 @@ void recursicvePrint(char *basePath, Option *option) {
             recursicvePrint(path, option);
         }
     }
+    n = n-1;
     while(n--) {
         free(namelist[n]);
     }
@@ -499,17 +510,11 @@ void recursicvePrint(char *basePath, Option *option) {
 int myStringCmp (char* str1, char* str2) {
     char buf1[PATH_MAX];
     char buf2[PATH_MAX];
-
     strcpy(buf1, str1);
     strcpy(buf2, str2);
-
-
     int strLength1 = strlen(buf1);
     int strLength2 = strlen(buf2);
-
-
     int minStrLength;
-
     //find the bounds for the loop
     if(strLength1 <= strLength2) {
         minStrLength = strLength1;
@@ -517,7 +522,6 @@ int myStringCmp (char* str1, char* str2) {
         minStrLength = strLength2;
     }
 
-    
     // loop through and compare characters
     for(int i = 0; i < minStrLength; i++) {
         if(buf1[i] < buf2[i]) {
@@ -535,14 +539,13 @@ int main (int argc, char *argv[]) {
     int count = 0;
     char *path = (char*)malloc(PATH_MAX);
     char cwd[PATH_MAX];
-    memset(cwd, 0, PATH_MAX); 
     Option *option = malloc(sizeof(Option));
     get_options(argc, argv, option); 
    
 
-   char temp[1000];
+   char temp[PATH_MAX];
     int dif;
-    for (int i = 0; i< argc; i++) {
+    for (int i = argc - non_opts; i< argc; i++) {
         for(int j = i + 1; j< argc; j++) {
             dif = myStringCmp(argv[i], argv[j]);
             if(dif > 0) {
@@ -584,6 +587,7 @@ int main (int argc, char *argv[]) {
     // no options given
     if (count == 0) {
         // getcwd - get the pathname of the current working directory
+
         if (getcwd(cwd, sizeof(cwd)) == NULL) {
             printf(" get cwd error %d\n", errno); 
             exit(1);
@@ -599,8 +603,8 @@ int main (int argc, char *argv[]) {
     // [ARGUEMENTS]
     for (int j = argc - non_opts; j < argc; j++) 
     {   
-        
 
+        
 
         // skips the option arguments ie. -i, -l etc..
         // only print directory and file name
@@ -609,10 +613,11 @@ int main (int argc, char *argv[]) {
         // {
         //     continue; 
         // }
-             
-        path = argv[j];
+       strcpy(path, argv[j]);   
+        // path = argv[j];
         if (single_file(path) || valid_link(path))
         {
+          
             print_file(path, option);
         } else if(directory(path)) {
             if(option->option_R) 
