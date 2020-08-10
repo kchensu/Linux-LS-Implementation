@@ -492,12 +492,10 @@ int main (int argc, char *argv[]) {
     char* temp;
     int dif;
     for (int i = argc - non_opts; i< argc; i++) {
-
         for(int j = i + 1; j< argc; j++) {
             dif = myStringCmp(argv[i], argv[j]);
-            printf("difference:args[i]%s   args[j]%s %d\n", argv[i], argv[j], dif);
             if(dif > 0) {
-                strcpy(temp, argv[i]);
+                temp = argv[i];
                 argv[i] = argv[j];
                 argv[j] = temp;
             }
