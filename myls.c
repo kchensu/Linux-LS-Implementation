@@ -275,8 +275,8 @@ int myCompare(const struct dirent ** dir1, const struct dirent **dir2) {
     int minStrLength;
     sum2 = 0;
     sum1 = 0;
-    char buf1[1000];
-    char buf2[1000];
+    char buf1[PATH_MAX];
+    char buf2[PATH_MAX];
     int nbr1 = 0;
     int nbr2 = 0;
 
@@ -484,8 +484,8 @@ void recursicvePrint(char *basePath, Option *option) {
 }
 
 int myStringCmp (char* str1, char* str2) {
-    char buf1[1000];
-    char buf2[1000];
+    char buf1[PATH_MAX];
+    char buf2[PATH_MAX];
 
     strcpy(buf1, str1);
     strcpy(buf2, str2);
