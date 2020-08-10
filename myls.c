@@ -340,7 +340,6 @@ int print_directory(char *path, Option *option) {
         exit(1);
     }
 
-
     struct dirent **namelist;
     int n;
     n = scandir(path, &namelist, NULL, myCompare);
@@ -396,6 +395,7 @@ int print_directory(char *path, Option *option) {
     free(buffer);
     free(namelist);
     closedir(cwd);
+    //printf("returning: %d", hasValidFiles);
     return hasValidFiles;
 }
 
@@ -427,7 +427,8 @@ void recursicvePrint(char *basePath, Option *option) {
     DIR *dir;
     struct stat buf;
     char *path = (char*)malloc(PATH_MAX);
-    int printedFiles;
+    int printedFiles = 0;
+    printf("printed files is now %d\n", printedFiles);
 
     if((dir = opendir(basePath)) == NULL) {
         perror ("Cannot open.");
@@ -439,8 +440,10 @@ void recursicvePrint(char *basePath, Option *option) {
     } else {
         printf("%s:\n", basePath);
     }
-    
     printedFiles = print_directory(basePath, option);
+            printf("printed files is now %d\n", printedFiles);
+
+    //printf("files?: %d", printedFiles);
 
     rewinddir(dir);
     struct dirent **namelist;
@@ -477,24 +480,21 @@ void recursicvePrint(char *basePath, Option *option) {
         if(S_ISDIR(buf.st_mode)) {
             //https://codeforwin.org/2018/03/c-program-to-list-all-files-in-a-directory-recursively.html
             if(basePath != NULL) {
-                if(printedFiles)
-                {
-                    if(option->option_R && !option->option_l)
-                    {
+                
+                if(printedFiles == 1) {
+                    if(option->option_R && !option->option_l) {
+                        printf("printed files is now %d\n", printedFiles);
                         printf("\n\n");
-                    }
-                    else
-                    {
-                        printf("\n");
-                    }
-                    
-                    
+                    } 
                 }
+                
                 strcpy(path, basePath);
                 strcat(path, "/");
                 strcat(path, dp->d_name);  
             }
+            //printedFiles =0;
             recursicvePrint(path, option);
+            //printedFiles =0;
         }
     }
     n = n-1;
@@ -543,18 +543,23 @@ int main (int argc, char *argv[]) {
     get_options(argc, argv, option); 
    
 
-   char temp[PATH_MAX];
+    char* temp = (char*) malloc(PATH_MAX);
     int dif;
     for (int i = argc - non_opts; i< argc; i++) {
         for(int j = i + 1; j< argc; j++) {
             dif = myStringCmp(argv[i], argv[j]);
             if(dif > 0) {
-                strcpy(temp, argv[i]);
+                //strcpy(temp, argv[i]);
+                temp = argv[i];
                 argv[i] = argv[j];
                 argv[j] = temp;
             }
         }
     }
+    free(temp);
+    // for(int i =0; i < argc; i++) {
+    //     printf("%s ", argv[i]);
+    // }
     // printf("Count the number of options: %d\n", count_opts);
     // printf("THE NUMBER OF NON ARGUMENTS %d\n", non_opts);
 
