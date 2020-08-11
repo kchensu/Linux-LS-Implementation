@@ -49,12 +49,23 @@ void dynamicSizes(char* basePath, Option *opt) {
             strcat(buffer, dp->d_name);
 
             lstat(buffer, &cur_stat);
-            tempInode = get_ino(cur_stat);
+
+
+            char* nbrString = (char*)malloc(sizeof(unsigned long long));
+            sprintf(nbrString, "%llu", (unsigned long long) cur_stat.st_ino);
+            tempInode = strlen(nbrString);
+            free(nbrString);
+
             if(tempInode > maxInode) {
                 maxInode = tempInode;
             }
 
-            tempHardLinks = get_hardlink(cur_stat);
+            char* LinksNbrString = (char*)malloc(sizeof(long int));
+            sprintf(LinksNbrString, "%ld", cur_stat.st_nlink);
+            tempHardLinks = strlen(LinksNbrString);
+            //printf("nbrs string: %s", nbrString);
+            free(LinksNbrString);
+
             if(tempHardLinks > maxHardlinks) {
                 maxHardlinks = tempHardLinks;
             }
@@ -65,20 +76,13 @@ void dynamicSizes(char* basePath, Option *opt) {
         }
     }
     maxHardlinks++;
-    printf("\n");
     closedir(cwd);
     free(buffer);
     }
 
 
-int get_ino(struct stat s_stat) {
+void get_ino(struct stat s_stat) {
     printf("%*llu ",maxInode,(unsigned long long) s_stat.st_ino);
-    char* nbrString = (char*)malloc(sizeof(unsigned long long));
-    int length;
-    sprintf(nbrString, "%llu", (unsigned long long) s_stat.st_ino);
-    length = strlen(nbrString);
-    free(nbrString);
-    return length;
 }
 
 void get_permissions(struct stat path_stats) {
@@ -101,17 +105,10 @@ void get_permissions(struct stat path_stats) {
     printf((mode & S_IXOTH) ? "x" : "-");
 }
 
-int get_hardlink(struct stat s_stat)
+void get_hardlink(struct stat s_stat)
 {
     //int max_width = 2;
     printf("%*ld ", maxHardlinks, s_stat.st_nlink);
-    char* nbrString = (char*)malloc(sizeof(long int));
-    int length;
-    sprintf(nbrString, "%ld", s_stat.st_nlink);
-    length = strlen(nbrString);
-    //printf("nbrs string: %s", nbrString);
-    free(nbrString);
-    return length;
 }
 
 void get_user_info(struct stat s_stat) 
