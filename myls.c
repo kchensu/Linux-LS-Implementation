@@ -18,6 +18,7 @@
 extern int optind, opterr, optopt;
 static int non_opts = 0;
 
+
 int main (int argc, char *argv[]) {
 
     int count = 0;
@@ -65,6 +66,10 @@ int main (int argc, char *argv[]) {
             }
         }
     }
+
+    
+
+
     // printf("count %d\n",count);
     // https://pubs.opengroup.org/onlinepubs/009695399/functions/getcwd.html
     // no options given

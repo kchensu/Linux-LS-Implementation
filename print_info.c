@@ -17,8 +17,68 @@
 
 # define DATE_BUFFER 512
 
-void get_ino(struct stat s_stat) {
-    printf("%llu ",(unsigned long long) s_stat.st_ino);
+int maxFileName = 0;
+int maxInode = 0;
+int maxHardlinks= 0;
+
+void dynamicSizes(char* basePath, Option *opt) {
+    DIR *cwd;
+    struct dirent *dp;
+    char *buffer = (char*)malloc(PATH_MAX);
+    struct stat cur_stat;
+    int hasValidFiles = 0;
+    int tempInode;
+    int tempHardLinks;
+    // failed to open
+    if ((cwd = opendir(basePath)) == NULL) {
+        printf("error opening directory: %d\n", errno);
+        exit(1);
+    }
+    
+    while((dp= readdir(cwd)) != NULL){ 
+        // get_permissions(cur_stat);
+        if (dp->d_name[0] != '.') { 
+            //https://stackoverflow.com/questions/19663042/stat-function-call
+            // lstat() returns information about a file pointed to by pathname
+            if (strlen(dp->d_name) > maxFileName) {
+                maxFileName = strlen(dp->d_name);
+            }
+
+            strcpy(buffer, basePath);
+            strcat(buffer, "/");
+            strcat(buffer, dp->d_name);
+
+            lstat(buffer, &cur_stat);
+            tempInode = get_ino(cur_stat);
+            if(tempInode > maxInode) {
+                maxInode = tempInode;
+            }
+
+            tempHardLinks = get_hardlink(cur_stat);
+            if(tempHardLinks > maxHardlinks) {
+                maxHardlinks = tempHardLinks;
+            }
+
+            // printf("\nmaxfilename: %d", maxFileName);
+            // printf("\n max inode: %d",maxInode);
+            // printf("\n max hardlinks: %d", maxHardlinks);
+        }
+    }
+    maxHardlinks++;
+    printf("\n");
+    closedir(cwd);
+    free(buffer);
+    }
+
+
+int get_ino(struct stat s_stat) {
+    printf("%*llu ",maxInode,(unsigned long long) s_stat.st_ino);
+    char* nbrString = (char*)malloc(sizeof(unsigned long long));
+    int length;
+    sprintf(nbrString, "%llu", (unsigned long long) s_stat.st_ino);
+    length = strlen(nbrString);
+    free(nbrString);
+    return length;
 }
 
 void get_permissions(struct stat path_stats) {
@@ -40,11 +100,20 @@ void get_permissions(struct stat path_stats) {
     printf((mode & S_IWOTH) ? "w" : "-");
     printf((mode & S_IXOTH) ? "x" : "-");
 }
-void get_hardlink(struct stat s_stat)
+
+int get_hardlink(struct stat s_stat)
 {
-    int max_width = 2;
-    printf("%*ld ", max_width, s_stat.st_nlink);
+    //int max_width = 2;
+    printf("%*ld ", maxHardlinks, s_stat.st_nlink);
+    char* nbrString = (char*)malloc(sizeof(long int));
+    int length;
+    sprintf(nbrString, "%ld", s_stat.st_nlink);
+    length = strlen(nbrString);
+    //printf("nbrs string: %s", nbrString);
+    free(nbrString);
+    return length;
 }
+
 void get_user_info(struct stat s_stat) 
 {   
     int max_width = 2;
@@ -82,12 +151,12 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     {
         if (opt->option_R && !opt->option_l)
         {
-            printf("%.*s ", max_width, name);
+            printf("%.*s ", maxFileName, name);
             
         }
         else
         {
-            printf("%.*s\n", max_width, name);
+            printf("%.*s\n", maxFileName, name);
         }
         return; 
     }
@@ -97,19 +166,19 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     {
         if (opt->option_R && !opt->option_l) 
         {
-            printf("%.*s ", max_width, name);
+            printf("%.*s ", maxFileName, name);
             
         }
         else
         {
-            printf("%.*s\n", max_width, name);
+            printf("%.*s\n", maxFileName, name);
         }
         return;
     }
     // check if is a link
     if (S_ISLNK(s_stat.st_mode))
     {
-        printf("%.*s ", max_width, name);
+        printf("%.*s ", maxFileName, name);
     }
     
     // buffer contains the link of a filename
@@ -122,7 +191,7 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     if (S_ISLNK(s_stat.st_mode) && opt->option_l) 
     {
         printf ("-> ");
-        printf("%.*s", max_width,buffer);
+        printf("%.*s", maxFileName,buffer);
 
     }
     if (opt->option_l)
@@ -134,11 +203,15 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
 }
 
 int print_directory(char *path, Option *option) {
+    //dynamicSizes(path, option);
     DIR *cwd;
     struct dirent *dp;
     char *buffer = (char*)malloc(PATH_MAX);
     struct stat cur_stat;
     int hasValidFiles = 0;
+
+    dynamicSizes(path, option);
+
 
     // failed to open
     if ((cwd = opendir(path)) == NULL) {
