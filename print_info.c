@@ -73,43 +73,35 @@ void get_date_time(struct stat s_stat) {
     free(buffer);
 }
 
-
 void get_filename(char* name,struct stat s_stat, Option *opt) {
     struct stat temp_stat;
     int max_width = 512; 
     //check if is afile
     if (S_ISREG(s_stat.st_mode)) 
     {
-        if (opt->option_R && !opt->option_l)
-        {
-            printf("%.*s ", max_width, name);
-            
-        }
-        else
-        {
-            printf("%.*s\n", max_width, name);
-        }
+        
+        printf("%.*s\n", max_width, name);
         return; 
     }
 
     // check if is a directory
     if (S_ISDIR(s_stat.st_mode)) 
     {
-        if (opt->option_R && !opt->option_l) 
-        {
-            printf("%.*s ", max_width, name);
-            
-        }
-        else
-        {
-            printf("%.*s\n", max_width, name);
-        }
+        
+        printf("%.*s\n", max_width, name);
+        
         return;
     }
     // check if is a link
     if (S_ISLNK(s_stat.st_mode))
     {
-        printf("%.*s ", max_width, name);
+        if(opt->option_i && !opt->option_l){
+            printf("%.*s\n", max_width, name);
+        }
+        else
+        {
+            printf("%.*s ", max_width, name);
+        }
     }
     
     // buffer contains the link of a filename
@@ -117,18 +109,14 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     size_t pathlen = readlink(name, buffer, sizeof(buffer) - 1);
     buffer[pathlen] = 0;
     lstat(buffer, &temp_stat);
-
     //if is a link, then we will need to print out the file/dir its poiting to.
     if (S_ISLNK(s_stat.st_mode) && opt->option_l) 
     {
         printf ("-> ");
-        printf("%.*s", max_width,buffer);
+        printf("%.*s\n", max_width,buffer);
 
     }
-    if (opt->option_l)
-    {
-        printf("\n");
-    }
+    
     free(buffer);
     return;
 }
@@ -284,14 +272,8 @@ void recursive_print(char *basePath, Option *option) {
             if(basePath != NULL) {
                 if(printedFiles)
                 {
-                    if(option->option_R && !option->option_l)
-                    {
-                        printf("\n\n");
-                    }
-                    else
-                    {
-                        printf("\n");
-                    }         
+                    printf("\n");
+                           
                 }
                 strcpy(path, basePath);
                 strcat(path, "/");
