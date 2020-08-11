@@ -19,7 +19,10 @@
 
 int maxFileName = 0;
 int maxInode = 0;
-int maxHardlinks= 0;
+int maxHardlinks = 0;
+int maxUsrLength = 0;
+int maxGroupLength = 0;
+int maxFileSize = 0;
 
 void dynamicSizes(char* basePath, Option *opt) {
     DIR *cwd;
@@ -70,12 +73,36 @@ void dynamicSizes(char* basePath, Option *opt) {
                 maxHardlinks = tempHardLinks;
             }
 
+            char* userStr = getpwuid(cur_stat.st_uid)->pw_name;
+            int tempUsrLength = strlen(userStr);
+            if(tempUsrLength > maxUsrLength) {
+                maxUsrLength = tempUsrLength;
+            }
+
+            char* tempGroupStr = getgrgid(cur_stat.st_gid)->gr_name;
+            int tempGroupLength = strlen(tempGroupStr);
+            if(tempGroupLength > maxGroupLength) {
+                maxGroupLength = tempGroupLength;
+            }
+
+
+            char* fileNbrString = (char*)malloc(sizeof(long));
+            sprintf(nbrString, "%ld",cur_stat.st_size);
+            int tempFileSize = strlen(fileNbrString);
+            free(fileNbrString);
+            if(tempFileSize > maxFileSize) {
+                maxFileSize = tempFileSize;
+            }
+
+            
+            
             // printf("\nmaxfilename: %d", maxFileName);
             // printf("\n max inode: %d",maxInode);
             // printf("\n max hardlinks: %d", maxHardlinks);
         }
     }
     maxHardlinks++;
+    maxFileSize = maxFileSize -2;
     closedir(cwd);
     free(buffer);
     }
@@ -114,18 +141,18 @@ void get_hardlink(struct stat s_stat)
 void get_user_info(struct stat s_stat) 
 {   
     int max_width = 2;
-    printf("%*s ", max_width, getpwuid(s_stat.st_uid)->pw_name);
+    printf("%*s ", maxUsrLength, getpwuid(s_stat.st_uid)->pw_name);
 }
 
 void get_group_info(struct stat s_stat) 
 {
     int max_width = 2;
-    printf("%*s ",max_width, getgrgid(s_stat.st_gid)->gr_name);
+    printf("%*s ",maxGroupLength, getgrgid(s_stat.st_gid)->gr_name);
 }
 
 void get_file_size(struct stat s_stat) 
 {   
-    printf("%5ld ", s_stat.st_size);
+    printf("%*ld ",maxFileSize, s_stat.st_size);
 }
 
 void get_date_time(struct stat s_stat) {
@@ -160,8 +187,10 @@ void get_filename(char* name,struct stat s_stat, Option *opt) {
     }
     // check if is a link
     if (S_ISLNK(s_stat.st_mode))
-    {
-        if(opt->option_i && !opt->option_l){
+    {   
+        if(!opt->option_i && !opt->option_R && !opt->option_l) {
+            printf("%.*s\n", maxFileName, name);
+        } else if( (opt->option_i || opt->option_R) && !opt->option_l) {
             printf("%.*s\n", maxFileName, name);
         }
         else
@@ -304,6 +333,12 @@ void recursive_print(char *basePath, Option *option) {
     }
     
     printedFiles = print_directory(basePath, option);
+    maxFileName = 0;
+    maxInode = 0;
+    maxHardlinks= 0;
+    maxUsrLength = 0;
+    maxGroupLength = 0;
+    maxFileSize = 0;
 
     rewinddir(dir);
     struct dirent **namelist;
