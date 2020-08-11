@@ -8,5 +8,9 @@ void get_user_info(struct stat);
 void get_group_info(struct stat); 
 void get_file_size(struct stat); 
 void get_date_time(struct stat);  
+void get_filename(char*, struct stat, Option *);
+int print_directory(char*, Option*);
+void print_file(char*,Option*); 
+void recursive_print(char *basePath, Option *option);
 
 #endif

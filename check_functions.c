@@ -14,6 +14,9 @@
 #include "check_functions.h"
 #include "print_info.h"
 
+
+
+
 int valid_directory(char *path) {
     DIR *dir; 
     if ((dir = opendir(path)) == NULL) {
@@ -63,5 +66,26 @@ int valid_link(char* path)
         return 1;
     }
     return 0;
+}
+void get_options(const int argc, char **argv, Option* opt) {
+    int choice;
+    struct stat s_stat;
+
+    while((choice = getopt(argc, argv, "+ilR")) != -1)
+    {   
+        switch(choice) {
+            case 'i':  
+                opt->option_i = 1;
+                break;
+            case 'l':  
+                opt->option_l = 1;
+                break;
+            case 'R':  
+                opt->option_R = 1;
+                break;
+            default:
+                exit(1);  
+        }
+    }
 }
 
