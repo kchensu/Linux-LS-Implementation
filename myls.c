@@ -3,19 +3,15 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <time.h>
-#include <pwd.h>
-#include <memory.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <grp.h>
 #include <dirent.h>
 #include "check_functions.h"
 #include "print_info.h"
 #include "sort_function.h"
 
-extern int optind, opterr, optopt;
+extern int optind;
 static int non_opts = 0;
 
 
@@ -31,7 +27,6 @@ int main (int argc, char *argv[]) {
     {
         non_opts++;
     }
-
     //https://stackoverflow.com/questions/29158659/string-sort-in-c-using-array-of-pointers
     char* temp;
     int dif;
@@ -45,14 +40,12 @@ int main (int argc, char *argv[]) {
             }
         }
     }
-    // printf("Count the number of options: %d\n", count_opts);
-    // printf("THE NUMBER OF NON ARGUMENTS %d\n", non_opts);
 
     // loop through all args and skips the options[ -i, -l, -il etc...]
     for (int i = argc - non_opts; i < argc; i++)
     { 
         if (!valid_directory(argv[i]) && !valid_file(argv[i])) {
-            printf("ls: cannot access %s", argv[i]);
+            printf("ls: cannot access %s ", argv[i]);
             printf("No such file or directory\n");
             exit(1);
         }

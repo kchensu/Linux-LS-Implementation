@@ -9,13 +9,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <grp.h>
 #include <dirent.h>
 #include "check_functions.h"
 #include "print_info.h"
-
-
-
 
 int valid_directory(char *path) {
     DIR *dir; 
