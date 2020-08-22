@@ -17,7 +17,7 @@
 
 # define DATE_BUFFER 512
 
-int maxFileName = 0;
+int maxFileName = 4096;
 int maxInode = 0;
 int maxHardlinks = 0;
 int maxUsrLength = 0;
@@ -159,7 +159,7 @@ void get_date_time(struct stat s_stat) {
     struct tm *time;
     char *buffer = (char*)malloc(255);
     int max_width = 10;
-    time_t time_s = s_stat.st_ctime;
+    time_t time_s = s_stat.st_mtime;
     time = localtime(&time_s);
     strftime(buffer, DATE_BUFFER ,"%b %_d %Y %H:%M ",time);
     printf("%*s", max_width, buffer);
